@@ -6,8 +6,9 @@ import cookieParser from "cookie-parser";
 import connectDB from './config/db';
 import { APP_ORIGIN, NODE_ENV, PORT } from './constants/env';
 import { OK } from "./constants/http";
-import { errorHandler } from "./middleware/errorHandler";
+import  errorHandler  from "./middleware/errorHandler";
 import { catchErrors } from "./utils/catchErrors";
+import { authRoutes } from "./routes/auth.route";
 
 const app = express()
 
@@ -30,6 +31,8 @@ app.get('/', catchErrors(
   }
   }
 ));
+
+app.use("/auth", authRoutes);
 
 // error handler
 app.use(errorHandler);
