@@ -1,13 +1,21 @@
-import jwt, { sign } from "jsonwebtoken";
 import VerificationCodeType from "../constants/verificationCodeType";
 import SessionModel from "../models/session.model";
 import User from "../models/user.model";
 import VerificationCodeModel from "../models/verificationCode.model";
 import { ONE_DAY_MS, oneYearFromNow, thirtyDaysFromNow } from "../utils/date";
-import { JWT_REFRESH_SECRET, JWT_SECRET } from "../constants/env";
 import appAssert from "../utils/appAssert";
-import { CONFLICT, UNAUTHORIZED } from "../constants/http";
-import { RefreshTokenPayload, refreshTokenSignOptions, signToken, verfiyToken } from "../utils/jwt";
+import {
+  CONFLICT,
+  INTERNAL_SERVER_ERROR,
+  NOT_FOUND,
+  UNAUTHORIZED,
+} from "../constants/http";
+import {
+  RefreshTokenPayload,
+  refreshTokenSignOptions,
+  signToken,
+  verfiyToken,
+} from "../utils/jwt";
 
 export type CreateAccountParams = {
   email: string;
@@ -51,32 +59,15 @@ export const createAccount = async (data: CreateAccountParams) => {
   });
 
   const sessionInfo = {
-    sessionId: session._id
-  }
+    sessionId: session._id,
+  };
 
   // 6. sign access token & refresh token
-  const accessToken = signToken(
-    {
-      ...sessionInfo,
-      userId: user._id,
-    }
-  )
-  // const accessToken = jwt.sign(
-  //   {
-  //     userId: user._id,
-  //     sessionId: session._id,
-  //   },
-  //   JWT_SECRET,
-  //   { expiresIn: "15m", audience: ["user"] }
-  // );
-
-  const refreshToken = signToken(sessionInfo, refreshTokenSignOptions)
-
-  // const refreshToken = jwt.sign(
-  //   { sessionId: session._id },
-  //   JWT_REFRESH_SECRET,
-  //   { expiresIn: "30d", audience: ["user"] }
-  // );
+  const accessToken = signToken({
+    ...sessionInfo,
+    userId: user._id,
+  });
+  const refreshToken = signToken(sessionInfo, refreshTokenSignOptions);
 
   // 7. return user & tokens
   return {
@@ -86,7 +77,6 @@ export const createAccount = async (data: CreateAccountParams) => {
   };
 };
 
-// login User
 export const loginUser = async (data: LoginParams) => {
   // 1. verify user exists
   const user = await User.findOne({ email: data.email });
@@ -102,7 +92,6 @@ export const loginUser = async (data: LoginParams) => {
     userId,
     userAgent: data.userAgent,
   });
-  
   const sessionInfo = {
     sessionId: session._id,
   };
@@ -111,9 +100,8 @@ export const loginUser = async (data: LoginParams) => {
   const accessToken = signToken({
     ...sessionInfo,
     userId: user._id,
-  })
-
-  const refreshToken = signToken(sessionInfo, refreshTokenSignOptions)
+  });
+  const refreshToken = signToken(sessionInfo, refreshTokenSignOptions);
 
   // 5. return user and tokens
   return {
@@ -124,15 +112,16 @@ export const loginUser = async (data: LoginParams) => {
 };
 
 export const refreshUserAccessToken = async (refreshToken: string) => {
-  // validate refresh token
+  // 1. validate refresh token
   const { payload } = verfiyToken<RefreshTokenPayload>(refreshToken, {
     secret: refreshTokenSignOptions.secret,
   });
   appAssert(payload, UNAUTHORIZED, "Invalid refresh token ");
 
-  // find corressponding session in database
+  // 2. find corressponding session in database
   const session = await SessionModel.findById(payload.sessionId);
-  // ensure session is active
+
+  // 3. ensure session is active
   const now = Date.now();
   appAssert(
     session && session.expiresAt.getTime() > now,
@@ -140,15 +129,16 @@ export const refreshUserAccessToken = async (refreshToken: string) => {
     "Session expired"
   );
 
-  // determine if session needs to be refreshed
+  // 4. determine if session needs to be refreshed
   const sessionNeedsRefresh = session.expiresAt.getTime() - now <= ONE_DAY_MS;
 
-  // extend session expiry if needed
+  // 5. extend session expiry if needed
   if (sessionNeedsRefresh) {
     session.expiresAt = thirtyDaysFromNow();
     await session.save();
   }
 
+  // 6. generate access token & new refresh token if needed
   const accessToken = signToken({
     userId: session.userId,
     sessionId: session._id,
@@ -166,5 +156,33 @@ export const refreshUserAccessToken = async (refreshToken: string) => {
   return {
     accessToken,
     newRefreshToken,
+  };
+};
+
+export const verifyEmail = async (code: string) => {
+  // 1. get verification code
+  const validCode = await VerificationCodeModel.findOne({
+    _id: code,
+    type: VerificationCodeType.EmailVerification,
+    expiresAt: { $gt: new Date() },
+  });
+  appAssert(validCode, NOT_FOUND, "Invalid or expired verification code");
+
+  // 2. update the user; set verified=true
+  const updatedUser = await User.findByIdAndUpdate(
+    validCode.userId,
+    {
+      verified: true,
+    },
+    { new: true }
+  );
+  appAssert(updatedUser, INTERNAL_SERVER_ERROR, "Failed to verify email");
+
+  // 3. delete verification code
+  await validCode.deleteOne();
+
+  // 4. return user
+  return {
+    user: updatedUser.omitPassword(),
   };
 };

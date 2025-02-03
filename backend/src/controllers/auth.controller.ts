@@ -1,8 +1,22 @@
 import { catchErrors } from "../utils/catchErrors";
 import { CREATED, OK, UNAUTHORIZED } from "../constants/http";
-import { createAccount, loginUser, refreshUserAccessToken } from "../services/auth.service";
-import { clearAuthCookies, getAccessTokenCookieOptions, getRefreshTokenCookieOptions, setAuthCookies } from "../utils/cookies";
-import { registerSchema, loginSchema } from "./auth.schemas";
+import {
+  createAccount,
+  loginUser,
+  refreshUserAccessToken,
+  verifyEmail
+} from "../services/auth.service";
+import {
+  clearAuthCookies,
+  getAccessTokenCookieOptions,
+  getRefreshTokenCookieOptions,
+  setAuthCookies,
+} from "../utils/cookies";
+import {
+  registerSchema,
+  loginSchema,
+  verificationCodeSchema,
+} from "./auth.schemas";
 import SessionModel from "../models/session.model";
 import { verfiyToken } from "../utils/jwt";
 import appAssert from "../utils/appAssert";
@@ -99,3 +113,17 @@ export const refreshController = catchErrors(async (req, res) => {
       message: "Access token refreshed",
     });
 });
+
+// Description: Verify Email
+// Route: GET /auth/email/verify/:code
+// Access: Private
+export const verifyEmailController = catchErrors(async (req, res) => {
+  // 1. get verification code from request
+  const verificationCode = verificationCodeSchema.parse(req.params.code)
+
+  // 2. call service: verfiy email
+  await verifyEmail(verificationCode)
+
+  // 3. return response
+  return res.status(OK).json({messsage: "Email was successfully verified"})
+})
