@@ -16,6 +16,9 @@ import {
   signToken,
   verfiyToken,
 } from "../utils/jwt";
+import { sendMail } from "../utils/sendMail";
+import { getVerifyEmailTemplate } from "../utils/emailTempalte";
+import { APP_ORIGIN } from "../constants/env";
 
 export type CreateAccountParams = {
   email: string;
@@ -52,6 +55,16 @@ export const createAccount = async (data: CreateAccountParams) => {
   });
 
   // 4. send verification email
+  const url = `${APP_ORIGIN}/email/verify/${verificationCode._id}`;
+  const { error } = await sendMail({
+    to: user.email,
+    ...getVerifyEmailTemplate(url),
+  });
+  
+  if (error) {
+    console.log(error);
+  }
+  
   // 5. create session
   const session = await SessionModel.create({
     userId: user._id,
