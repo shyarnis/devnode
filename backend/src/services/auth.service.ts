@@ -79,15 +79,22 @@ export const loginUser = async (data: LoginParams) => {
   const user = await User.findOne({ email: data.email });
   appAssert(user, UNAUTHORIZED, "Invalid email or password");
 
+  // 2. validate password from the request
   const isValid = await user.comparePassword(data.password);
   appAssert(isValid, UNAUTHORIZED, "Invalid email or password");
 
+  // 3. create the session
   const userId = user._id;
   const session = await SessionModel.create({
     userId,
     userAgent: data.userAgent,
   });
+  
+  const sessionInfo = {
+    sessionId: session._id,
+  };
 
+  // 4. sign access token & refresh token
   const accessToken = jwt.sign(
     {
       userId: user._id,
@@ -103,6 +110,7 @@ export const loginUser = async (data: LoginParams) => {
     { expiresIn: "30d", audience: ["user"] }
   );
 
+  // 5. return user and tokens
   return {
     user: user.omitPassword(),
     accessToken,
