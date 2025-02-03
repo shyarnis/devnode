@@ -1,4 +1,4 @@
-import jwt, { SignOptions } from "jsonwebtoken";
+import jwt, { SignOptions, TokenExpiredError, VerifyOptions } from "jsonwebtoken";
 import { JWT_REFRESH_SECRET, JWT_SECRET } from "../constants/env";
 import { UserDocument } from "../models/user.model";
 import { SessionDocument } from "../models/session.model";
@@ -40,3 +40,24 @@ export const signToken = (
     ...signOpts,
   });
 };
+
+export const verfiyToken = <TPayload extends object = AccessTokenPayload>(
+    token: string,
+    options?: VerifyOptions & { secret: string }
+  ) => {
+    const { secret = JWT_SECRET, ...verifyOpts } = options || {};
+    try {
+      const payload = jwt.verify(token, secret, {
+        ...defaults,
+        ...verifyOpts,
+      }) as TPayload;
+      return {
+        payload,
+      };
+    } catch (error: any) {
+      return {
+        error: error.message,
+      };
+    }
+  };
+  
