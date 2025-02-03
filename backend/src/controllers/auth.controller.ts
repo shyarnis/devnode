@@ -53,10 +53,10 @@ export const loginController = catchErrors(async (req, res) => {
 // Access: Private
 export const logoutController = catchErrors(async (req, res) => {
   // 1. extract access token from cookies
-  const accessToken = req.cookies.accessToken as string;
+  const accessToken = req.cookies.accessToken as string | undefined;
 
   // 2. verify access token
-  const { payload, } = verfiyToken(accessToken);
+  const { payload, } = verfiyToken(accessToken || "");
 
   // 3. remove session from database
   if (payload) {
