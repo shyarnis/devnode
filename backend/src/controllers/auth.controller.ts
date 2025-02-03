@@ -1,26 +1,8 @@
-import { z } from "zod";
 import { catchErrors } from "../utils/catchErrors";
 import { CREATED, OK } from "../constants/http";
 import { createAccount, loginUser } from "../services/auth.service";
 import { setAuthCookies } from "../utils/cookies";
-
-const registerSchema = z
-  .object({
-    email: z.string().email().min(6).max(255),
-    password: z.string().min(6).max(255),
-    confirmPassword: z.string().min(6).max(255),
-    userAgent: z.string().optional(),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match",
-    path: ["confirmPassword"],
-  });
-
-const loginSchema = z.object({
-  email: z.string().email().min(6).max(255),
-  password: z.string().min(6).max(255),
-  userAgent: z.string().optional(),
-});
+import { registerSchema, loginSchema } from "./auth.schemas";
 
 // Decscription: Register a new user
 // Route: POST /auth/register
