@@ -3,11 +3,11 @@ import VerificationCodeType from "../constants/verificationCodeType";
 import SessionModel from "../models/session.model";
 import User from "../models/user.model";
 import VerificationCodeModel from "../models/verificationCode.model";
-import { oneYearFromNow } from "../utils/date";
+import { ONE_DAY_MS, oneYearFromNow, thirtyDaysFromNow } from "../utils/date";
 import { JWT_REFRESH_SECRET, JWT_SECRET } from "../constants/env";
 import appAssert from "../utils/appAssert";
 import { CONFLICT, UNAUTHORIZED } from "../constants/http";
-import { refreshTokenSignOptions, signToken } from "../utils/jwt";
+import { RefreshTokenPayload, refreshTokenSignOptions, signToken, verfiyToken } from "../utils/jwt";
 
 export type CreateAccountParams = {
   email: string;
@@ -120,5 +120,51 @@ export const loginUser = async (data: LoginParams) => {
     user: user.omitPassword(),
     accessToken,
     refreshToken,
+  };
+};
+
+export const refreshUserAccessToken = async (refreshToken: string) => {
+  // validate refresh token
+  const { payload } = verfiyToken<RefreshTokenPayload>(refreshToken, {
+    secret: refreshTokenSignOptions.secret,
+  });
+  appAssert(payload, UNAUTHORIZED, "Invalid refresh token ");
+
+  // find corressponding session in database
+  const session = await SessionModel.findById(payload.sessionId);
+  // ensure session is active
+  const now = Date.now();
+  appAssert(
+    session && session.expiresAt.getTime() > now,
+    UNAUTHORIZED,
+    "Session expired"
+  );
+
+  // determine if session needs to be refreshed
+  const sessionNeedsRefresh = session.expiresAt.getTime() - now <= ONE_DAY_MS;
+
+  // extend session expiry if needed
+  if (sessionNeedsRefresh) {
+    session.expiresAt = thirtyDaysFromNow();
+    await session.save();
+  }
+
+  const accessToken = signToken({
+    userId: session.userId,
+    sessionId: session._id,
+  });
+
+  const newRefreshToken = sessionNeedsRefresh
+    ? signToken(
+        {
+          sessionId: session._id,
+        },
+        refreshTokenSignOptions
+      )
+    : undefined;
+
+  return {
+    accessToken,
+    newRefreshToken,
   };
 };

@@ -1,10 +1,11 @@
 import { catchErrors } from "../utils/catchErrors";
-import { CREATED, OK } from "../constants/http";
-import { createAccount, loginUser } from "../services/auth.service";
-import { clearAuthCookies, setAuthCookies } from "../utils/cookies";
+import { CREATED, OK, UNAUTHORIZED } from "../constants/http";
+import { createAccount, loginUser, refreshUserAccessToken } from "../services/auth.service";
+import { clearAuthCookies, getAccessTokenCookieOptions, getRefreshTokenCookieOptions, setAuthCookies } from "../utils/cookies";
 import { registerSchema, loginSchema } from "./auth.schemas";
 import SessionModel from "../models/session.model";
 import { verfiyToken } from "../utils/jwt";
+import appAssert from "../utils/appAssert";
 
 // Decscription: Register a new user
 // Route: POST /auth/register
@@ -68,4 +69,33 @@ export const logoutController = catchErrors(async (req, res) => {
 
   // 5. return response
   res.status(OK).json({ message: "Logout Successfully" });
+});
+
+// Description: Refresh a token
+// Route: GET /auth/refresh
+// Access: Private
+export const refreshController = catchErrors(async (req, res) => {
+  // 1. get refresh token from cookies
+  const refreshToken = req.cookies.refreshToken as string | undefined;
+
+  // 2. validate that refresh token exists
+  appAssert(refreshToken, UNAUTHORIZED, "Missing refresh token");
+
+  // 3. create service: refresh user access token
+  const { accessToken, newRefreshToken } = await refreshUserAccessToken(
+    refreshToken
+  );
+
+  // 4. generate new refresh token
+  if (newRefreshToken) {
+    res.cookie("refreshToken", newRefreshToken, getRefreshTokenCookieOptions());
+  }
+
+  // 4. return response
+  return res
+    .status(OK)
+    .cookie("accessToken", accessToken, getAccessTokenCookieOptions())
+    .json({
+      message: "Access token refreshed",
+    });
 });
