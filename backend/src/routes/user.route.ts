@@ -1,9 +1,9 @@
 import { Router } from "express";
 import { getUserController } from "../controllers/user.controller";
 
-const userRouters = Router();
+const userRoutes = Router();
 
 // Prefix: /user
-userRouters.get("/", getUserController);
+userRoutes.get("/", getUserController);
 
-export default userRouters;
+export default userRoutes;
