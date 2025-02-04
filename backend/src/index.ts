@@ -5,9 +5,7 @@ import cookieParser from "cookie-parser";
 
 import connectDB from './config/db';
 import { APP_ORIGIN, NODE_ENV, PORT } from './constants/env';
-import { OK } from "./constants/http";
 import  errorHandler  from "./middleware/errorHandler";
-import { catchErrors } from "./utils/catchErrors";
 import { authRoutes } from "./routes/auth.route";
 import authenticate from "./middleware/authenticate";
 import userRoutes from "./routes/user.route";
@@ -23,17 +21,6 @@ app.use(cors({
 }))
 
 app.use(cookieParser());
-
-app.get('/', catchErrors(
-  async (req, res, next) => {
-  try {
-    throw new Error('Something went wrong');
-    res.status(OK).send('Hello World');
-  } catch (error) {
-    next(error);
-  }
-  }
-));
 
 app.use("/auth", authRoutes);
 app.use("/user", authenticate, userRoutes);
