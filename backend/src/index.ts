@@ -9,6 +9,8 @@ import { OK } from "./constants/http";
 import  errorHandler  from "./middleware/errorHandler";
 import { catchErrors } from "./utils/catchErrors";
 import { authRoutes } from "./routes/auth.route";
+import authenticate from "./middleware/authenticate";
+import userRouters from "./routes/user.route";
 
 const app = express()
 
@@ -33,6 +35,7 @@ app.get('/', catchErrors(
 ));
 
 app.use("/auth", authRoutes);
+app.use("/user", authenticate, userRouters);
 
 // error handler
 app.use(errorHandler);
