@@ -11,6 +11,7 @@ import { catchErrors } from "./utils/catchErrors";
 import { authRoutes } from "./routes/auth.route";
 import authenticate from "./middleware/authenticate";
 import userRoutes from "./routes/user.route";
+import sessionRoutes from "./routes/session.route";
 
 const app = express()
 
@@ -36,6 +37,7 @@ app.get('/', catchErrors(
 
 app.use("/auth", authRoutes);
 app.use("/user", authenticate, userRoutes);
+app.use("/sessions", authenticate, sessionRoutes);
 
 // error handler
 app.use(errorHandler);
