@@ -8,6 +8,7 @@ export const FORBIDDEN = 403;
 export const NOT_FOUND = 404;
 export const METHOD_NOT_ALLOWED = 405;
 export const CONFLICT = 409;
+export const TOO_MANY_REQUEST = 429;
 export const INTERNAL_SERVER_ERROR = 500;
 export const NOT_IMPLEMENTED = 501;
 export const BAD_GATEWAY = 502;
@@ -25,6 +26,7 @@ export type HttpStatusCode =
     | typeof NOT_FOUND
     | typeof METHOD_NOT_ALLOWED
     | typeof CONFLICT
+    | typeof TOO_MANY_REQUEST
     | typeof INTERNAL_SERVER_ERROR
     | typeof NOT_IMPLEMENTED
     | typeof BAD_GATEWAY

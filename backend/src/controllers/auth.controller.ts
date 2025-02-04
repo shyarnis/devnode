@@ -4,7 +4,8 @@ import {
   createAccount,
   loginUser,
   refreshUserAccessToken,
-  verifyEmail
+  verifyEmail,
+  sendPasswordResetEmail,
 } from "../services/auth.service";
 import {
   clearAuthCookies,
@@ -16,6 +17,7 @@ import {
   registerSchema,
   loginSchema,
   verificationCodeSchema,
+  emailSchema,
 } from "./auth.schemas";
 import SessionModel from "../models/session.model";
 import { verfiyToken } from "../utils/jwt";
@@ -126,4 +128,20 @@ export const verifyEmailController = catchErrors(async (req, res) => {
 
   // 3. return response
   return res.status(OK).json({messsage: "Email was successfully verified"})
+})
+
+// Description: Send password, reset request in email
+// ROUTE: POST /auth/password/forget
+// Access: Private
+export const sendPassswordResetController = catchErrors(async (req, res) => {
+  // 1. get email from request
+  const email = emailSchema.parse(req.body.email);
+
+  // 2. call service: send password reset email
+  await sendPasswordResetEmail(email);
+
+  // 3. return response
+  return res.status(OK).json({
+    message: "Password reset email sent"
+  })
 })
