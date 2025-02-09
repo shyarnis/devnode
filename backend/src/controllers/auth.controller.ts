@@ -6,6 +6,7 @@ import {
   refreshUserAccessToken,
   verifyEmail,
   sendPasswordResetEmail,
+  resetPassword,
 } from "../services/auth.service";
 import {
   clearAuthCookies,
@@ -18,6 +19,7 @@ import {
   loginSchema,
   verificationCodeSchema,
   emailSchema,
+  resetPasswordSchema,
 } from "./auth.schemas";
 import SessionModel from "../models/session.model";
 import { verfiyToken } from "../utils/jwt";
@@ -37,7 +39,7 @@ export const registerController = catchErrors(async (req, res) => {
   const { user, accessToken, refreshToken } = await createAccount(request);
 
   // 3. set cookies
-  setAuthCookies({res, accessToken, refreshToken});
+  setAuthCookies({ res, accessToken, refreshToken });
 
   //4.  return response
   return res.status(CREATED).send({ user });
@@ -73,7 +75,7 @@ export const logoutController = catchErrors(async (req, res) => {
   const accessToken = req.cookies.accessToken as string | undefined;
 
   // 2. verify access token
-  const { payload, } = verfiyToken(accessToken || "");
+  const { payload } = verfiyToken(accessToken || "");
 
   // 3. remove session from database
   if (payload) {
@@ -81,7 +83,7 @@ export const logoutController = catchErrors(async (req, res) => {
   }
 
   // 4. clear authentication cookies
-  clearAuthCookies(res)
+  clearAuthCookies(res);
 
   // 5. return response
   res.status(OK).json({ message: "Logout Successfully" });
@@ -121,14 +123,14 @@ export const refreshController = catchErrors(async (req, res) => {
 // Access: Private
 export const verifyEmailController = catchErrors(async (req, res) => {
   // 1. get verification code from request
-  const verificationCode = verificationCodeSchema.parse(req.params.code)
+  const verificationCode = verificationCodeSchema.parse(req.params.code);
 
   // 2. call service: verfiy email
-  await verifyEmail(verificationCode)
+  await verifyEmail(verificationCode);
 
   // 3. return response
-  return res.status(OK).json({messsage: "Email was successfully verified"})
-})
+  return res.status(OK).json({ messsage: "Email was successfully verified" });
+});
 
 // Description: Send password, reset request in email
 // ROUTE: POST /auth/password/forget
@@ -142,6 +144,21 @@ export const sendPassswordResetController = catchErrors(async (req, res) => {
 
   // 3. return response
   return res.status(OK).json({
-    message: "Password reset email sent"
-  })
-})
+    message: "Password reset email sent",
+  });
+});
+
+// Description: Reset a password
+// ROUTE: POST /auth/password/reset
+// Access: Private
+export const resetPassswordController = catchErrors(async (req, res) => {
+  // 1. get email from request
+  const request = resetPasswordSchema.parse(req.body);
+
+  // 2. call service: reset password by email
+  await resetPassword(request);
+
+  // 3. return response
+  clearAuthCookies(res);
+  res.status(OK).json({ message: "Password was reset successfully" });
+});

@@ -6,6 +6,7 @@ import {
   refreshController,
   verifyEmailController,
   sendPassswordResetController,
+  resetPassswordController,
 } from "../controllers/auth.controller";
 
 const authRoutes = Router();
@@ -17,5 +18,6 @@ authRoutes.get("/logout", logoutController);
 authRoutes.get("/refresh", refreshController);
 authRoutes.get("/email/verify/:code", verifyEmailController);
 authRoutes.post("/password/forgot", sendPassswordResetController);
+authRoutes.post("/password/reset", resetPassswordController);
 
 export { authRoutes };
